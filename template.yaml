@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  ImageId:
+    Type: AWS::EC2::Image::Id
+    Default: ami-0323c3dd2da7fb37d
+  InstanceType:
+    Type: String
+    Default: t2.micro
+
+Resources:
+  Instance: 
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref ImageId
+      InstanceType: !Ref InstanceType
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+      IamInstanceProfile: !Ref IamInstanceProfile
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          yum update -y
+          yum install -y awslogs
+          systemctl start awslogsd
+          systemctl enable awslogsd.service
+  IamInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+      - !Ref InstanceRole
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: ec2.amazonaws.com
+          Action: sts:AssumeRole    
+      Description: Allows EC2 instances to call AWS services on your behalf.
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+  CloudWatchLogsPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${AWS::StackName}-cloudwatch-logs
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          - logs:DescribeLogStreams
+          Resource: '*'
+      Roles:
+      - !Ref InstanceRole
+
+Outputs:
+  SessionManagerUrl:
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/systems-manager/session-manager/${Instance}
+  CloudWatchLogsUrl:
+    Value: !Sub https://console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#logEventViewer:group=/var/log/messages;stream=${Instance}
