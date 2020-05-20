@@ -5,7 +5,7 @@
 - Regionは `us-east-1` を利用（DefaultのAMIがus-east-1）
 - デプロイ後は、SSMセッションマネージャからログイン可能（Outputsの `SessionManagerUrl`）
 - ログはOutputsの `CloudWatchLogsUrl` から確認
-  - デフォルトなので、出力ログは `/var/log/message` になります。
+  - 出力されるログは `/var/log/message`（awslogsのdefault）
 
 ## 設定
 
